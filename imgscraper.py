@@ -1,54 +1,45 @@
+import bs4
 import requests
-from bs4 import BeautifulSoup
+import shutil
 import os
-import time
 
-def img_scraper(query, quantity, path=None, sleep_duration=0.5):
-    if path is None:
-        directory = query.replace(' ', '+')
-        os.makedirs(directory, exist_ok=True)
-    else:
-        os.makedirs(path, exist_ok=True)
-        directory = path
+GOOGLE_IMAGE = 'https://www.google.com/search?site=&tbm=isch&source=hp&biw=1873&bih=990&'
 
-    # format the query for the Google search URL
-    query = query.replace(' ', '+')
+def extract(data, quantity, dest=None):
+    URL_input = GOOGLE_IMAGE + 'q=' + data
+    print('Fetching from URL:', URL_input)
+    URLdata = requests.get(URL_input)
+    soup = bs4.BeautifulSoup(URLdata.text, "html.parser")
+    ImgTags = soup.find_all('img')
+    i = 0
+    print('processing...')
 
-    url = f"https://www.google.com/search?q={query}&tbm=isch"
-    response = requests.get(url)
-    response.raise_for_status()
+    
+    if dest is None:
+        dest = './' + data.replace(' ', '_') + '/'
+    if not os.path.exists(dest):
+        os.makedirs(dest)
 
-    soup = BeautifulSoup(response.content, 'html.parser')
-    images = soup.find_all('img')
-
-    # download the images
-    downloaded_images = 0
-    for i, image in enumerate(images):
-        image_url = image['src']
-        image_file = os.path.join(directory, f"image{i+1}.jpg")
-
-        try:
-            # skipping invalid URLs
-            if not image_url.startswith('http'):
-                raise ValueError("Invalid URL")
-
-            response = requests.get(image_url)
-            response.raise_for_status()
-
-            with open(image_file, 'wb') as file:
-                file.write(response.content)
-
-            downloaded_images += 1
-            print(f"Downloaded: {image_file}")
-
-            if downloaded_images == quantity:
-                break
-
-            time.sleep(sleep_duration)
-
-        except (requests.exceptions.HTTPError, ValueError) as e:
-            print(f"Error downloading image: {image_url}")
-            print(str(e))
-
-    if downloaded_images == 0:
-        print("No images found.")
+    while i < quantity:
+        for link in ImgTags:
+            try:
+                images = link.get('src')
+                ext = images[images.rindex('.'):]
+                if ext.startswith('.png'):
+                    ext = '.png'
+                elif ext.startswith('.jpg'):
+                    ext = '.jpg'
+                elif ext.startswith('.jfif'):
+                    ext = '.jfif'
+                elif ext.startswith('.com'):
+                    ext = '.jpg'
+                elif ext.startswith('.svg'):
+                    ext = '.svg'
+                data = requests.get(images, stream=True)
+                filename = os.path.join(dest, str(i) + ext)
+                with open(filename, 'wb') as file:
+                    shutil.copyfileobj(data.raw, file)
+                i += 1
+            except:
+                pass
+    print('Download completed successfully.')
