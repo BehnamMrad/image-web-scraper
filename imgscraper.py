@@ -5,7 +5,7 @@ import os
 
 GOOGLE_IMAGE = 'https://www.google.com/search?site=&tbm=isch&source=hp&biw=1873&bih=990&'
 
-def extract(data, quantity, dest=None):
+def imgscrape(data, quantity, dest=None):
     URL_input = GOOGLE_IMAGE + 'q=' + data
     print('Fetching from URL:', URL_input)
     URLdata = requests.get(URL_input)
