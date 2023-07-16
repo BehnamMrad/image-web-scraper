@@ -1,10 +1,15 @@
 import requests
 from bs4 import BeautifulSoup
 import os
+import time
 
-def img_scraper(query, quantity):
-    directory = query.replace(' ', '+')
-    os.makedirs(directory, exist_ok=True)
+def img_scraper(query, quantity, path=None, sleep_duration=0.5):
+    if path is None:
+        directory = query.replace(' ', '+')
+        os.makedirs(directory, exist_ok=True)
+    else:
+        os.makedirs(path, exist_ok=True)
+        directory = path
 
     # format the query for the Google search URL
     query = query.replace(' ', '+')
@@ -30,7 +35,6 @@ def img_scraper(query, quantity):
             response = requests.get(image_url)
             response.raise_for_status()
 
-
             with open(image_file, 'wb') as file:
                 file.write(response.content)
 
@@ -39,6 +43,9 @@ def img_scraper(query, quantity):
 
             if downloaded_images == quantity:
                 break
+
+            time.sleep(sleep_duration)
+
         except (requests.exceptions.HTTPError, ValueError) as e:
             print(f"Error downloading image: {image_url}")
             print(str(e))
